@@ -6,9 +6,7 @@
 
 var MAX_PLAYERS = 50;
 var BOARD_SIDE_LEN = 3;
-var MAX_OFFSPRING_PARENTS = 6;
-
-var players = [];
+var MAX_OFFSPRING_PARENTS = 7;
 
 function shuffle(array) {
     for (var i = array.length - 1; i > 0; i--) {
@@ -91,7 +89,6 @@ function outcome(playerA, playerB) {
                 break;
             }
         }
-        
         if (hasWinner(board)) {
             return 2;
         }
@@ -118,14 +115,13 @@ function outcome(playerA, playerB) {
   Return array where [i, fitness] is the fitness of player i. Array is sorted by fitness
 */
 
-function getFitness() {
+function getFitness(players) {
     var fitness = [];
 
     var i, j;
     
     for (i = 0; i < MAX_PLAYERS; i++) {
         var curr = 0;
-
         for (j = 0; j < MAX_PLAYERS; j++) {
             if (i != j) {
                 curr += outcome(players[i], players[j]); // Player i plays first
@@ -147,10 +143,10 @@ function getFitness() {
   
  */
 
-function geneticAlgorithm() {
-    var fitness = getFitness();
+function geneticAlgorithm(players) {
+    var fitness = getFitness(players);
 
-    print(fitness[0][0] + " " + fitness[0][1]);
+    print(fitness[0][1] + " " + fitness[1][1] + " " + fitness[2][1]);
 
     var new_players = [];
 
@@ -158,46 +154,44 @@ function geneticAlgorithm() {
 
     //Crossover process
     for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
-        for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
-            var crossovered_parent = players[fitness[i][0]];
-            
+        var crossovered_parent = players[fitness[i][0]];
+        
+        for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {            
             crossovered_parent = shuffle(crossovered_parent);
 
-            print("Shuffled " + crossovered_parent);
-            
-            new_players.push(crossovered_parent);
+            new_players.push(crossovered_parent.slice());
         }    
     }
-
     //After the crossover and mutation process, there's only 45 new players, include 5 best players from the old population to the new one.
-    print(new_players.length);
 
     for (i = 0; i < MAX_PLAYERS && new_players.length < MAX_PLAYERS; i++) {
         new_players.push(players[fitness[i][0]]);
     }
     
     for (i = 0; i < MAX_PLAYERS; i++) {
-        print(players[i] + " " + new_players[i]   );
+        //print(players[i] + " " + new_players[i]   );
     }
 
-    players = new_players.slice();
-
+    return new_players;
 }
 
 /*
   Initialize 50 initial players.
 */
 
-function initialize_population() {    
+function initialize_population() {
+    var players = [];
+    
     for (var i = 0; i < MAX_PLAYERS; i++) {
         var curr = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]);
 
         players.push(curr);
     }
+    return players;
 }
 
-initialize_population();
+var players = initialize_population();
 
-for (var i = 0; i < 3; i++) {
-    geneticAlgorithm();
+for (var i = 0; i < 50; i++) {
+    players = geneticAlgorithm(players);
 }
