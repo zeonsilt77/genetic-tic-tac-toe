@@ -27,7 +27,7 @@
             x: mx,
             y: my
         };
-    };
+    }
     
     function draw_background(ctx) {
         ctx.fillStyle = "green";
@@ -64,9 +64,10 @@
 
     canvas.onclick = function (e) {
         var pt = getMouse(e, canvas);
+
         console.log(pt.x + " " + pt.y);
     };
     
-    //draw_background(context);
+    draw_background(context);
     draw_lines(context);
 })();

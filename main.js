@@ -143,7 +143,9 @@ function getFitness(players) {
 }
 
 /*
-  
+  Receives a array with players from previous generation and evolve it.
+
+  As crossover process is still ambigious ('how to optimally merge two plays for a tic tac toe game'), it just shuffles player's order of play. It's basically crossover/mutation process in the same time.
  */
 
 function geneticAlgorithm(players) {
@@ -157,12 +159,15 @@ function geneticAlgorithm(players) {
 
     //Crossover process
     for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
-        var crossovered_parent = players[fitness[i][0]];
-        
-        for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {            
-            crossovered_parent = shuffle(crossovered_parent);
-
-            new_players.push(crossovered_parent.slice());
+        var crossovered_parent = players[fitness[i][0]];        
+        for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
+            if (Math.floor(Math.random() * 10) % 4 === 0) {
+                new_players.push(players[Math.floor(Math.random() * (MAX_PLAYERS - 1))]);
+            } else {
+                crossovered_parent = shuffle(crossovered_parent);
+                
+                new_players.push(crossovered_parent.slice());
+            }
         }    
     }
     //After the crossover and mutation process, there's only 45 new players, include 5 best players from the old population to the new one.
