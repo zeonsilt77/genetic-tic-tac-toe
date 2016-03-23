@@ -6,8 +6,11 @@
 
 var MAX_PLAYERS = 50;
 var BOARD_SIDE_LEN = 3;
-var MAX_OFFSPRING_PARENTS = 7;
+var MAX_OFFSPRING_PARENTS = 6;
 
+/*
+  Simple array shuffle function as JS doesn't has it by default
+*/
 function shuffle(array) {
     for (var i = array.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
