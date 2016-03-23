@@ -22,16 +22,19 @@ function shuffle(array) {
 }
 
 
+var Game = function() {
+
+};
+
 /*
   Check whether a board has a winner. As win state is run after each play, if there's a winner, it will be only one.
   0. No winner at all
   1. Player 1 wins
   2. Player 2 wins
 */
-
-function hasWinner(board) {
+Game.prototype.hasWinner = function(board) {
     var winner = 0;
-
+    
     var ver_cnt = [[0, 0], [0, 0], [0, 0]];
     var hor_cnt = [[0, 0], [0, 0], [0, 0]];
 
@@ -60,7 +63,7 @@ function hasWinner(board) {
     }
 
     return winner;
-}
+};
 
 /*
   Simulate a game with playerA and playerB. playerA plays first
