@@ -3,7 +3,7 @@ function loadButtons() {
         var button = document.getElementById(i.toString());
 
         button.onclick = function() {
-                   
+            
         };
     }    
 }

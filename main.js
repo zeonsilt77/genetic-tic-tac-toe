@@ -4,7 +4,7 @@
   Beginning with 50 randomly generated players, it keeps improving newer players based on best players from previous generations.
 */
 
-var MAX_PLAYERS = 50;
+var MAX_PLAYERS = 60;
 var BOARD_SIDE_LEN = 3;
 var MAX_OFFSPRING_PARENTS = 6;
 
@@ -22,16 +22,110 @@ function shuffle(array) {
 }
 
 
-var Game = function() {
-
+var Population = function() {
+    this.players = [];
+    this.initialize_population();
 };
 
 /*
-  Check whether a board has a winner. As win state is run after each play, if there's a winner, it will be only one.
-  0. No winner at all
-  1. Player 1 wins
-  2. Player 2 wins
-*/
+ * Initialize MAX_PLAYERS initial players.
+ */
+Population.prototype.initialize_population = function() {
+    this.players = [];
+
+    var i;
+    var base_player = [];
+
+    for (i = 0; i < BOARD_SIDE_LEN * BOARD_SIDE_LEN; i++) {
+        base_player.push(i);
+    }    
+    
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        var curr = shuffle(base_player.slice());
+        this.players.push(curr);
+    }    
+};
+
+
+/*
+ * Return array where [i, fitness] is the fitness of player i. Array is sorted by fitness
+ */
+
+Population.prototype.getFitness = function() {
+    var fitness = [];
+
+    var i, j;
+    
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        var curr = 0;
+        for (j = 0; j < MAX_PLAYERS; j++) {
+            if (i != j) {
+                curr += new Game(this.players[i], this.players[j]).outcome(); // Player i plays first
+                curr += new Game(this.players[j], this.players[i]).outcome(); // Player j plays first
+            }
+        }
+
+        fitness.push([i, curr]);
+    }
+    
+    fitness.sort(function(a, b) {
+        return a[1] - b[1];
+    });
+
+    return fitness;
+};
+
+/*
+ * As crossover process is still ambigious ('how to optimally merge two plays for a tic tac toe game'), it just shuffles player's order of play. It's basically crossover/mutation process in the same time.
+ */
+Population.prototype.evolve = function() {
+    var fitness = this.getFitness(this.players);
+
+    var new_players = [];
+
+    var i, j, k, l;
+
+    var median = 0;
+
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        median += fitness[i][1];
+    }
+
+    //Crossover process
+    for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
+        var crossovered_parent = this.players[fitness[i][0]];
+        
+        for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
+            if (Math.floor(Math.random() * 10) % 4 === 0) {
+                new_players.push(this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))]);
+            } else {
+                crossovered_parent = shuffle(crossovered_parent);
+                
+                new_players.push(crossovered_parent.slice());
+            }
+        }    
+    }
+
+    for (i = 0; i < MAX_PLAYERS && new_players.length < MAX_PLAYERS; i++) {
+        new_players.push(this.players[fitness[i][0]]);
+    }
+
+    this.players = new_players;
+};
+
+
+
+
+var Game = function(playerA, playerB) {
+    this.playerA = playerA;
+    this.playerB = playerB;
+    this.board   = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+};
+
+/*
+ * Checking whether we already have to 
+ */
+
 Game.prototype.hasWinner = function(board) {
     var winner = 0;
     
@@ -74,7 +168,7 @@ Game.prototype.hasWinner = function(board) {
   1 . Draw
 */
 
-function outcome(playerA, playerB) {
+Game.prototype.simulate = function() {
     var board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 
     var pos_A = 0;
@@ -88,19 +182,19 @@ function outcome(playerA, playerB) {
     
     for (i = 0; i < 9; i++) {
         while (pos_A < BOARD_SIDE_LEN * BOARD_SIDE_LEN) {
-            var pa = convert(playerA[pos_A++]);
+            var pa = convert(this.playerA[pos_A++]);
 
             if (board[pa[0]][pa[1]] === 0) {
                 board[pa[0]][pa[1]] = 1;
                 break;
             }
         }
-        if (hasWinner(board)) {
+        if (this.hasWinner(board)) {
             return 2;
         }
 
         while (pos_B < BOARD_SIDE_LEN * BOARD_SIDE_LEN) {
-            var pb = convert(playerB[pos_B++]);
+            var pb = convert(this.playerB[pos_B++]);
 
             if (board[pb[0]][pb[1]] === 0) {
                 board[pb[0]][pb[1]] = 2;
@@ -108,101 +202,52 @@ function outcome(playerA, playerB) {
             }
         }
 
-        if (hasWinner(board)) {
+        if (this.hasWinner(board)) {
             return 0;
         }
     }
     
     return 1;
+};
+
+
+///////////////////////////////////////////////////////
+
+var game = new Game();
+
+function clearButtons() {
+    for (var i = 0; i < 9; i++) {
+        var button = document.getElementById(i.toString());
+
+        button.checked = false;
+    }    
 }
 
+function isClear() {
+    for (var i = 0; i < 9; i++) {
+        var button = document.getElementById(i.toString());
 
-/*
-  Return array where [i, fitness] is the fitness of player i. Array is sorted by fitness
-*/
-
-function getFitness(players) {
-    var fitness = [];
-
-    var i, j;
-    
-    for (i = 0; i < MAX_PLAYERS; i++) {
-        var curr = 0;
-        for (j = 0; j < MAX_PLAYERS; j++) {
-            if (i != j) {
-                curr += outcome(players[i], players[j]); // Player i plays first
-                curr += outcome(players[j], players[i]); // Player j plays first
-            }
+        if (button.checked) {
+            return false;
         }
-
-        fitness.push([i, curr]);
     }
+    return true;
+}
+
+function loadButtons() {
+    say = function(button) {
+        console.log('hi');
+    };
     
-    fitness.sort(function(a, b) {
-        return a[1] - b[1];
-    });
+    for (var i = 0; i < 9; i++) {
+        var button = document.getElementById(i.toString());
 
-    return fitness;
-}
-
-/*
-  Receives a array with players from previous generation and evolve it.
-
-  As crossover process is still ambigious ('how to optimally merge two plays for a tic tac toe game'), it just shuffles player's order of play. It's basically crossover/mutation process in the same time.
- */
-
-function geneticAlgorithm(players) {
-    var fitness = getFitness(players);
-
-    print(fitness[0][1] + " " + fitness[1][1] + " " + fitness[2][1]);
-
-    var new_players = [];
-
-    var i, j, k, l;
-
-    //Crossover process
-    for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
-        var crossovered_parent = players[fitness[i][0]];        
-        for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
-            if (Math.floor(Math.random() * 10) % 4 === 0) {
-                new_players.push(players[Math.floor(Math.random() * (MAX_PLAYERS - 1))]);
-            } else {
-                crossovered_parent = shuffle(crossovered_parent);
-                
-                new_players.push(crossovered_parent.slice());
-            }
-        }    
-    }
-    //After the crossover and mutation process, there's only 45 new players, include 5 best players from the old population to the new one.
-
-    for (i = 0; i < MAX_PLAYERS && new_players.length < MAX_PLAYERS; i++) {
-        new_players.push(players[fitness[i][0]]);
-    }
-    
-    for (i = 0; i < MAX_PLAYERS; i++) {
-        //print(players[i] + " " + new_players[i]   );
+        button.onclick = say(button);
     }
 
-    return new_players;
+    document.getElementById('reset').onclick = function() {
+        clearButtons();
+    };
 }
 
-/*
-  Initialize 50 initial players.
-*/
-
-function initialize_population() {
-    var players = [];
-    
-    for (var i = 0; i < MAX_PLAYERS; i++) {
-        var curr = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-
-        players.push(curr);
-    }
-    return players;
-}
-
-var players = initialize_population();
-
-for (var i = 0; i < 50; i++) {
-    players = geneticAlgorithm(players);
-}
+loadButtons();
