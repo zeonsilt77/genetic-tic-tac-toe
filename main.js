@@ -27,6 +27,10 @@ var Population = function() {
     this.initialize_population();
 };
 
+Population.prototype.getRandomPlayer = function() {
+    return this.players[Math.random() * (MAX_PLAYERS - 1)];
+};
+
 /*
  * Initialize MAX_PLAYERS initial players.
  */
@@ -38,12 +42,12 @@ Population.prototype.initialize_population = function() {
 
     for (i = 0; i < BOARD_SIDE_LEN * BOARD_SIDE_LEN; i++) {
         base_player.push(i);
-    }    
-    
+    }
+
     for (i = 0; i < MAX_PLAYERS; i++) {
         var curr = shuffle(base_player.slice());
         this.players.push(curr);
-    }    
+    }
 };
 
 
@@ -55,7 +59,7 @@ Population.prototype.getFitness = function() {
     var fitness = [];
 
     var i, j;
-    
+
     for (i = 0; i < MAX_PLAYERS; i++) {
         var curr = 0;
         for (j = 0; j < MAX_PLAYERS; j++) {
@@ -67,7 +71,7 @@ Population.prototype.getFitness = function() {
 
         fitness.push([i, curr]);
     }
-    
+
     fitness.sort(function(a, b) {
         return a[1] - b[1];
     });
@@ -94,16 +98,16 @@ Population.prototype.evolve = function() {
     //Crossover process
     for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
         var crossovered_parent = this.players[fitness[i][0]];
-        
+
         for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
             if (Math.floor(Math.random() * 10) % 4 === 0) {
                 new_players.push(this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))]);
             } else {
                 crossovered_parent = shuffle(crossovered_parent);
-                
+
                 new_players.push(crossovered_parent.slice());
             }
-        }    
+        }
     }
 
     for (i = 0; i < MAX_PLAYERS && new_players.length < MAX_PLAYERS; i++) {
@@ -122,13 +126,10 @@ var Game = function(playerA, playerB) {
     this.board   = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 };
 
-/*
- * Checking whether we already have to 
- */
 
 Game.prototype.hasWinner = function(board) {
     var winner = 0;
-    
+
     var ver_cnt = [[0, 0], [0, 0], [0, 0]];
     var hor_cnt = [[0, 0], [0, 0], [0, 0]];
 
@@ -143,7 +144,7 @@ Game.prototype.hasWinner = function(board) {
 
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 1; j <= 2; j++) {
-            if (ver_cnt[i][j] == BOARD_SIDE_LEN) {
+            if (ver_cnt[i][j] == BOARD_SIDE_LEN || hor_cnt[i][j] == BOARD_SIDE_LEN) {
                 winner = j;
             }
         }
@@ -157,6 +158,32 @@ Game.prototype.hasWinner = function(board) {
     }
 
     return winner;
+};
+
+
+Game.prototype.convert = function(x) {
+    return [Math.floor(x / 3), x % 3];
+};
+
+/*
+  Returns which player have to play
+*/
+Game.prototype.turn = function() {
+    var used = 0;
+
+    for (i = 0; i < BOARD_SIDE_LEN; i++) {
+        for (j = 0; j < BOARD_SIDE_LEN; j++) {
+            if (this.board[i][j] !== 0) {
+                used += 1;
+            }
+        }
+    }
+
+    if (used % 2 === 0) {
+        return 1;
+    } else {
+        return 2;
+    }
 };
 
 /*
@@ -174,15 +201,11 @@ Game.prototype.simulate = function() {
     var pos_A = 0;
     var pos_B = 0;
 
-    function convert(x) {
-        return [Math.floor(x / 3), x % 3];
-    }
-
     var i;
-    
+
     for (i = 0; i < 9; i++) {
         while (pos_A < BOARD_SIDE_LEN * BOARD_SIDE_LEN) {
-            var pa = convert(this.playerA[pos_A++]);
+            var pa = this.convert(this.playerA[pos_A++]);
 
             if (board[pa[0]][pa[1]] === 0) {
                 board[pa[0]][pa[1]] = 1;
@@ -194,7 +217,7 @@ Game.prototype.simulate = function() {
         }
 
         while (pos_B < BOARD_SIDE_LEN * BOARD_SIDE_LEN) {
-            var pb = convert(this.playerB[pos_B++]);
+            var pb = this.convert(this.playerB[pos_B++]);
 
             if (board[pb[0]][pb[1]] === 0) {
                 board[pb[0]][pb[1]] = 2;
@@ -206,21 +229,33 @@ Game.prototype.simulate = function() {
             return 0;
         }
     }
-    
+
     return 1;
+};
+
+Game.prototype.play = function(position) {
+    var board_pos = this.convert(position);
+
+    if (position < 0 || position > 8 || this.board[board_pos[0]][board_pos[1]] !== 0) {
+        return false;
+    }
+
+    this.board[board_pos[0]][board_pos[1]] = this.turn();
 };
 
 
 ///////////////////////////////////////////////////////
 
 var game = new Game();
+var population = new Population();
+var player;
 
 function clearButtons() {
     for (var i = 0; i < 9; i++) {
         var button = document.getElementById(i.toString());
 
         button.checked = false;
-    }    
+    }
 }
 
 function isClear() {
@@ -231,22 +266,57 @@ function isClear() {
             return false;
         }
     }
+
     return true;
 }
 
 function loadButtons() {
-    say = function(button) {
-        console.log('hi');
+    say = function(button_num) {
+        var button = document.getElementById(button_num.toString());
+        var current = game.turn();
+        
+        button.checked = true;
+        game.play(button_num);
+
+        console.log('Play ' + button_num);
+        
+        if (game.hasWinner !== 0) {
+            alert('Player ' + current + ' Won');
+            
+            game = new Game();
+
+            document.getElementById('start').click();
+        }
+
+        document.getElementById(player[0].toString()).click();
+        game.play(player[0]);
+        player.shift();
     };
-    
+
     for (var i = 0; i < 9; i++) {
         var button = document.getElementById(i.toString());
-
-        button.onclick = say(button);
+        button.onclick = say(i);
     }
 
     document.getElementById('reset').onclick = function() {
         clearButtons();
+    };
+
+    document.getElementById('start').onclick = function() {
+        clearButtons();
+        
+        var now = 2;
+        player = population.getRandomPlayer();
+
+        if ((Math.random() * 10) % 2 === 0) {
+            now = 1;
+        }
+
+        if (now == 1) {            
+            document.getElementById(player[0].toString()).click();
+            game.play(player[0]);
+            player.shift();
+        }
     };
 }
 
