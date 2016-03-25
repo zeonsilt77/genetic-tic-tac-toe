@@ -165,6 +165,10 @@ Game.prototype.convert = function(x) {
     return [Math.floor(x / 3), x % 3];
 };
 
+Game.prototype.available = function(x) {
+
+}
+
 /*
   Returns which player have to play
 */
@@ -274,7 +278,8 @@ function isClear() {
 }
 
 function loadButtons() {
-    var say = function(button_num) {
+    var say = function() {
+        var button_num = event.srcElement.id;
         var button = document.getElementById(button_num.toString());
         var current = game.turn();
         
@@ -287,17 +292,18 @@ function loadButtons() {
             alert('Player ' + current + ' Won');
             
             game = new Game();
-
+            
             document.getElementById('start').click();
         }
-
-        document.getElementById(player[0].toString()).click();
-        player.shift();
+        while (player.length > 0 && !game.play(player[0])) {
+            document.getElementById(player[0].toString()).click();
+            player.shift();
+        }
     };
 
     for (var i = 0; i < 9; i++) {
         var button = document.getElementById(i.toString());
-        button.onclick = say(i);
+        button.onclick = say;
     }
 
     document.getElementById('reset').onclick = function() {
