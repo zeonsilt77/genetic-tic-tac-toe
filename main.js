@@ -28,7 +28,7 @@ var Population = function() {
 };
 
 Population.prototype.getRandomPlayer = function() {
-    return this.players[Math.random() * (MAX_PLAYERS - 1)];
+    return this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))];
 };
 
 /*
@@ -127,18 +127,18 @@ var Game = function(playerA, playerB) {
 };
 
 
-Game.prototype.hasWinner = function(board) {
+Game.prototype.hasWinner = function() {
     var winner = 0;
 
-    var ver_cnt = [[0, 0], [0, 0], [0, 0]];
-    var hor_cnt = [[0, 0], [0, 0], [0, 0]];
+    var ver_cnt = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    var hor_cnt = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 
     var i, j;
 
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 0; j < BOARD_SIDE_LEN; j++) {
-            ver_cnt[j][board[i][j]] += 1;
-            hor_cnt[i][board[i][j]] += 1;
+            ver_cnt[j][this.board[i][j]] += 1;
+            hor_cnt[i][this.board[i][j]] += 1;
         }
     }
 
@@ -150,13 +150,13 @@ Game.prototype.hasWinner = function(board) {
         }
     }
 
-    if (board[1][1] !== 0 &&
-        (board[1][1] == board[0][0] && board[1][1] == board[2][2]) ||
-        (board[1][1] == board[0][2] && board[1][1] == board[2][0])) {
+    if (this.board[1][1] !== 0 &&
+        ((this.board[1][1] == this.board[0][0] && this.board[1][1] == this.board[2][2]) ||
+         (this.board[1][1] == this.board[0][2] && this.board[1][1] == this.board[2][0]))) {
 
-        winner = board[1][1];
+        winner = this.board[1][1];
     }
-
+    
     return winner;
 };
 
@@ -170,7 +170,8 @@ Game.prototype.convert = function(x) {
 */
 Game.prototype.turn = function() {
     var used = 0;
-
+    var i, j;
+    
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 0; j < BOARD_SIDE_LEN; j++) {
             if (this.board[i][j] !== 0) {
@@ -241,6 +242,8 @@ Game.prototype.play = function(position) {
     }
 
     this.board[board_pos[0]][board_pos[1]] = this.turn();
+
+    return true;
 };
 
 
@@ -248,7 +251,7 @@ Game.prototype.play = function(position) {
 
 var game = new Game();
 var population = new Population();
-var player;
+var player = population.getRandomPlayer();
 
 function clearButtons() {
     for (var i = 0; i < 9; i++) {
@@ -271,7 +274,7 @@ function isClear() {
 }
 
 function loadButtons() {
-    say = function(button_num) {
+    var say = function(button_num) {
         var button = document.getElementById(button_num.toString());
         var current = game.turn();
         
@@ -280,7 +283,7 @@ function loadButtons() {
 
         console.log('Play ' + button_num);
         
-        if (game.hasWinner !== 0) {
+        if (game.hasWinner() !== 0) {
             alert('Player ' + current + ' Won');
             
             game = new Game();
@@ -289,7 +292,6 @@ function loadButtons() {
         }
 
         document.getElementById(player[0].toString()).click();
-        game.play(player[0]);
         player.shift();
     };
 
@@ -303,14 +305,15 @@ function loadButtons() {
     };
 
     document.getElementById('start').onclick = function() {
-        clearButtons();
-        
         var now = 2;
-        player = population.getRandomPlayer();
+
+        clearButtons();        
 
         if ((Math.random() * 10) % 2 === 0) {
             now = 1;
         }
+        
+        player = population.getRandomPlayer();
 
         if (now == 1) {            
             document.getElementById(player[0].toString()).click();
