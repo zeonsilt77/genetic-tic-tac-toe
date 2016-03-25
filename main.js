@@ -156,7 +156,7 @@ Game.prototype.hasWinner = function() {
 
         winner = this.board[1][1];
     }
-    
+
     return winner;
 };
 
@@ -165,17 +165,13 @@ Game.prototype.convert = function(x) {
     return [Math.floor(x / 3), x % 3];
 };
 
-Game.prototype.available = function(x) {
-
-}
-
 /*
   Returns which player have to play
 */
 Game.prototype.turn = function() {
     var used = 0;
     var i, j;
-    
+
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 0; j < BOARD_SIDE_LEN; j++) {
             if (this.board[i][j] !== 0) {
@@ -238,14 +234,26 @@ Game.prototype.simulate = function() {
     return 1;
 };
 
-Game.prototype.play = function(position) {
+Game.prototype.available = function(position) {
     var board_pos = this.convert(position);
 
     if (position < 0 || position > 8 || this.board[board_pos[0]][board_pos[1]] !== 0) {
         return false;
     }
 
+    return true;
+};
+
+Game.prototype.play = function(position) {
+    if (!this.available(position)) {
+        return false;
+    }
+
+    var board_pos = this.convert(position);
+
     this.board[board_pos[0]][board_pos[1]] = this.turn();
+
+
 
     return true;
 };
@@ -281,23 +289,38 @@ function loadButtons() {
     var say = function() {
         var button_num = event.srcElement.id;
         var button = document.getElementById(button_num.toString());
+
         var current = game.turn();
-        
+
         button.checked = true;
         game.play(button_num);
 
         console.log('Play ' + button_num);
-        
+
+        button.style.color = "#00FFFF";
+
         if (game.hasWinner() !== 0) {
             alert('Player ' + current + ' Won');
-            
+
             game = new Game();
-            
+
             document.getElementById('start').click();
         }
-        while (player.length > 0 && !game.play(player[0])) {
-            document.getElementById(player[0].toString()).click();
+
+        while (player.length > 0 && !game.available(player[0])) {
             player.shift();
+        }
+
+        if (player.length > 0) {
+            current = game.turn();
+
+            game.play(player[0]);
+            document.getElementById(player[0].toString()).checked = true;
+            player.shift();
+
+            if (game.hasWinner() !== 0) {
+                alert('Player ' + current + ' Won');
+            }
         }
     };
 
@@ -313,15 +336,15 @@ function loadButtons() {
     document.getElementById('start').onclick = function() {
         var now = 2;
 
-        clearButtons();        
+        clearButtons();
 
-        if ((Math.random() * 10) % 2 === 0) {
+        if (Math.floor((Math.random() * 10)) % 2 === 0) {
             now = 1;
         }
-        
+
         player = population.getRandomPlayer();
 
-        if (now == 1) {            
+        if (now == 1) {
             document.getElementById(player[0].toString()).click();
             game.play(player[0]);
             player.shift();
