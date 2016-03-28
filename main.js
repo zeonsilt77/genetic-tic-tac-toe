@@ -1,16 +1,18 @@
 /*
-  A Genetic Approch to create an optimal 3x3 Tic Tac Toe Player
-  The algorithm consists of simulating an evolutive process of position choices in the board.
-  Beginning with 50 randomly generated players, it keeps improving newer players based on best players from previous generations.
-*/
+ A Genetic Approch to create an optimal 3x3 Tic Tac Toe Player
+ The algorithm consists of simulating an evolutive process of position choices in the board.
+ Beginning with 50 randomly generated players, it keeps improving newer players based on best players from previous generations.
+ */
 
-var MAX_PLAYERS = 60;
+var MAX_PLAYERS = 80;
 var BOARD_SIDE_LEN = 3;
 var MAX_OFFSPRING_PARENTS = 6;
 
+var PLAYER_COLOR = ['#c1c1c1', '#fbb917', '#43c6db'];
+
 /*
-  Simple array shuffle function as JS doesn't has it by default
-*/
+ Simple array shuffle function as JS doesn't has it by default
+ */
 function shuffle(array) {
     for (var i = array.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -64,8 +66,8 @@ Population.prototype.getFitness = function() {
         var curr = 0;
         for (j = 0; j < MAX_PLAYERS; j++) {
             if (i != j) {
-                curr += new Game(this.players[i], this.players[j]).outcome(); // Player i plays first
-                curr += new Game(this.players[j], this.players[i]).outcome(); // Player j plays first
+                curr += new Game(this.players[i], this.players[j]).simulate(); // Player i plays first
+                curr += new Game(this.players[j], this.players[i]).simulate(); // Player j plays first
             }
         }
 
@@ -166,8 +168,8 @@ Game.prototype.convert = function(x) {
 };
 
 /*
-  Returns which player have to play
-*/
+ Returns which player have to play
+ */
 Game.prototype.turn = function() {
     var used = 0;
     var i, j;
@@ -188,13 +190,13 @@ Game.prototype.turn = function() {
 };
 
 /*
-  Simulate a game with playerA and playerB. playerA plays first
+ Simulate a game with playerA and playerB. playerA plays first
 
-  Return:
-  2 . PlayerA win
-  0 . PlayerB win
-  1 . Draw
-*/
+ Return:
+ 2 . PlayerA win
+ 0 . PlayerB win
+ 1 . Draw
+ */
 
 Game.prototype.simulate = function() {
     var board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
@@ -268,42 +270,35 @@ var player = population.getRandomPlayer();
 function clearButtons() {
     for (var i = 0; i < 9; i++) {
         var button = document.getElementById(i.toString());
+        var label  = document.getElementById("label-" + i.toString());
 
         button.checked = false;
+        label.style.backgroundColor = PLAYER_COLOR[0];
     }
 }
 
-function isClear() {
-    for (var i = 0; i < 9; i++) {
-        var button = document.getElementById(i.toString());
+function clearGame() {
+    clearButtons();
 
-        if (button.checked) {
-            return false;
-        }
-    }
-
-    return true;
+    game = new Game();
+    player = population.getRandomPlayer();
 }
 
-function loadButtons() {
-    var say = function() {
-        var button_num = event.srcElement.id;
-        var button = document.getElementById(button_num.toString());
+function playEvent() {
+    var button_num = event.srcElement.id;
+    var button = document.getElementById(button_num.toString());
+    var label  = document.getElementById("label-" + button_num.toString());
 
+    
         var current = game.turn();
-
-        button.checked = true;
+        
+        label.style.backgroundColor = PLAYER_COLOR[current];
         game.play(button_num);
 
         console.log('Play ' + button_num);
 
-        button.style.color = "#00FFFF";
-
         if (game.hasWinner() !== 0) {
             alert('Player ' + current + ' Won');
-
-            game = new Game();
-
             document.getElementById('start').click();
         }
 
@@ -314,42 +309,43 @@ function loadButtons() {
         if (player.length > 0) {
             current = game.turn();
 
+            label = document.getElementById("label-" + player[0].toString());
+            
             game.play(player[0]);
-            document.getElementById(player[0].toString()).checked = true;
+
+            label.style.backgroundColor = PLAYER_COLOR[current];
             player.shift();
 
             if (game.hasWinner() !== 0) {
                 alert('Player ' + current + ' Won');
+                clearGame();
             }
         }
-    };
-
-    for (var i = 0; i < 9; i++) {
-        var button = document.getElementById(i.toString());
-        button.onclick = say;
     }
 
-    document.getElementById('reset').onclick = function() {
-        clearButtons();
-    };
+
+function loadButtons() {
+    for (var i = 0; i < 9; i++) {
+        var button = document.getElementById(i.toString());
+        button.onclick = playEvent;
+    }
 
     document.getElementById('start').onclick = function() {
-        var now = 2;
-
-        clearButtons();
-
-        if (Math.floor((Math.random() * 10)) % 2 === 0) {
-            now = 1;
-        }
-
-        player = population.getRandomPlayer();
-
+        var now = 1 + Math.floor((Math.random() * 10)) % 2;
+        
+        clearGame();
+        
         if (now == 1) {
-            document.getElementById(player[0].toString()).click();
+            var label  = document.getElementById("label-" + player[0].toString());
+            label.style.backgroundColor = PLAYER_COLOR[1];
             game.play(player[0]);
             player.shift();
         }
     };
+}
+
+for (var i = 0; i < 10; i++) {
+    population.evolve();
 }
 
 loadButtons();
