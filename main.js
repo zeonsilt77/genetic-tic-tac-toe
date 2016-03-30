@@ -32,6 +32,20 @@ var Player = function() {
     this.play = {};
 };
 
+Player.prototype.getPlay = function(board, me) {
+    var available = [];
+    
+    for (var i = 0; i < BOARD_SIDE_LEN; i++) {
+        for (var j = 0; j < BOARD_SIDE_LEN; j++) {
+            if (board[i][j] === 0) {
+                available.push(i * BOARD_SIDE_LEN + j);
+            }
+        }
+    }
+
+    return available[Math.floor(Math.random() * available.length)];
+};
+
 var Population = function() {
     this.players = [];
     this.initialize_population();
@@ -123,10 +137,17 @@ var Game = function(playerA, playerB) {
     this.board   = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 };
 
-
-Game.prototype.hasWinner = function() {
+/*
+  =1 => Game is draw
+  0  => Still available to play
+  1  => Player 1 win
+  2  => Player 2 win
+  
+ */
+Game.prototype.boardStatus = function() {
     var winner = 0;
-
+    var hasDifferent = 0;
+    
     var ver_cnt = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
     var hor_cnt = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
 
@@ -138,13 +159,25 @@ Game.prototype.hasWinner = function() {
             hor_cnt[i][this.board[i][j]] += 1;
         }
     }
-
+    
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
+        var isV = 0;
+        var isH = 0;
+        
         for (j = 1; j <= 2; j++) {
+            if (ver_cnt[i][j] > 0) {
+                isV += 1;
+            }
+            if (hor_cnt[i][j] > 0) {
+                isH += 1;
+            }
             if (ver_cnt[i][j] == BOARD_SIDE_LEN || hor_cnt[i][j] == BOARD_SIDE_LEN) {
                 winner = j;
             }
         }
+        
+        hasDifferent += isV;
+        hasDifferent += isH;
     }
 
     if (this.board[1][1] !== 0 &&
@@ -154,9 +187,13 @@ Game.prototype.hasWinner = function() {
         winner = this.board[1][1];
     }
 
+    //If there's no winner and all rows and cols already has more than one player sign, the game is over
+    if (winner === 0 && hasDifferent == 6) {
+        winner = -1;
+    }
+
     return winner;
 };
-
 
 Game.prototype.convert = function(x) {
     return [Math.floor(x / 3), x % 3];
@@ -195,20 +232,27 @@ Game.prototype.turn = function() {
 
 Game.prototype.simulate = function() {
     for (var i = 0; i < 9; i++) {
-        var pa = this.playerA.getPlay[this.board];
+        if (this.boadStatus() == -1) break;
 
-        this.play(pa);
-        
-        if (this.hasWinner(board)) {
-            return 2;
+        var pa;
+        var turn = this.turn();
+
+        if (turn == 1) {
+            pa = this.playerA.getPlay(this.board, turn);
+        } else {
+            pa = this.playerB.getPlay(this.board, turn);
         }
         
-        var pb = this.playerB.getPlay[this.board];
+        this.play(pa);
 
-        this.play(pb);
-
-        if (this.hasWinner(board)) {
-            return 0;
+        var status = this.boardStatus();
+        
+        if (status == turn) {
+            if (turn == 1) {
+                return 2;
+            } else {
+                return 0;
+            }
         }
     }
 
