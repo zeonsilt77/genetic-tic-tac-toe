@@ -4,9 +4,9 @@
  Beginning with 50 randomly generated players, it keeps improving newer players based on best players from previous generations.
  */
 
-var MAX_PLAYERS = 80;
+var MAX_PLAYERS = 50;
 var BOARD_SIDE_LEN = 3;
-var MAX_OFFSPRING_PARENTS = 6;
+var MAX_OFFSPRING_PARENTS = 8;
 
 var PLAYER_COLOR = ['#c1c1c1', '#fbb917', '#43c6db'];
 
@@ -33,26 +33,42 @@ var Player = function() {
 };
 
 Player.prototype.getPlay = function(board, me) {
-    var available = [];
+    var copy_board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+
+    var i, j;
     
-    for (var i = 0; i < BOARD_SIDE_LEN; i++) {
-        for (var j = 0; j < BOARD_SIDE_LEN; j++) {
+    for (i = 0; i < BOARD_SIDE_LEN; i++) {
+        for (j = 0; j < BOARD_SIDE_LEN; j++) {
             if (board[i][j] === 0) {
-                available.push(i * BOARD_SIDE_LEN + j);
+                copy_board[i][j] = 0;
+            } else if (board[i][j] == me) {
+                copy_board[i][j] = 1;
+            } else {
+                copy_board[i][j] = 2;
             }
         }
     }
 
-    return available[Math.floor(Math.random() * available.length)];
+    if (!this.play[copy_board]) {
+        var available = [];
+        
+        for (i = 0; i < BOARD_SIDE_LEN; i++) {
+            for (j = 0; j < BOARD_SIDE_LEN; j++) {
+                if (board[i][j] === 0) {
+                    available.push(i * BOARD_SIDE_LEN + j);
+                }
+            }
+        }
+        this.play[copy_board] = available[Math.floor(Math.random() * available.length)];
+    }
+
+    return this.play[copy_board];
 };
+
 
 var Population = function() {
     this.players = [];
     this.initialize_population();
-};
-
-Population.prototype.getRandomPlayer = function() {
-    return this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))];
 };
 
 Population.prototype.initialize_population = function() {
@@ -63,6 +79,24 @@ Population.prototype.initialize_population = function() {
     }
 
     this.getFitness();
+};
+
+Population.prototype.getRandomPlayer = function() {
+    return this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))];
+};
+
+Population.prototype.crossover = function(playerA, playerB) {
+    var new_player = new Player();
+    
+    for (var curr in playerA.plays) {
+        
+    }
+
+    return player;
+};
+
+Population.prototype.mutate = function(player) {
+
 };
 
 
@@ -77,10 +111,8 @@ Population.prototype.getFitness = function() {
     for (i = 0; i < MAX_PLAYERS; i++) {
         var curr = 0;
         for (j = 0; j < MAX_PLAYERS; j++) {
-            if (i != j) {
-                curr += new Game(this.players[i], this.players[j]).simulate(); // Player i plays first
-                curr += new Game(this.players[j], this.players[i]).simulate(); // Player j plays first
-            }
+            curr += new Game(this.players[i], this.players[j]).simulate(); // Player i plays first
+            curr += new Game(this.players[j], this.players[i]).simulate(); // Player j plays first
         }
 
         fitness.push([i, curr]);
@@ -97,38 +129,30 @@ Population.prototype.getFitness = function() {
  * As crossover process is still ambigious ('how to optimally merge two plays for a tic tac toe game'), it just shuffles player's order of play. It's basically crossover/mutation process in the same time.
  */
 Population.prototype.evolve = function() {
-    var fitness = this.getFitness(this.players);
+    var fitness = this.getFitness();
 
-    var new_players = [];
+    var new_population = [];
 
     var i, j, k, l;
-
-    var median = 0;
-
-    for (i = 0; i < MAX_PLAYERS; i++) {
-        median += fitness[i][1];
-    }
-
+    
     //Crossover process
     for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
-        var crossovered_parent = this.players[fitness[i][0]];
-
         for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
-            if (Math.floor(Math.random() * 10) % 4 === 0) {
-                new_players.push(this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))]);
-            } else {
-                crossovered_parent = shuffle(crossovered_parent);
+            var new_player = this.crossover(this.players[i], this.players[j]);
 
-                new_players.push(crossovered_parent.slice());
+            if (new_population.length < MAX_PLAYERS) {
+                new_population.push(new_player);
             }
         }
     }
 
-    for (i = 0; i < MAX_PLAYERS && new_players.length < MAX_PLAYERS; i++) {
-        new_players.push(this.players[fitness[i][0]]);
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        if (Math.floor(Math.random() * 20) % 3 === 0) {
+            new_population[i] = this.mutate(new_population[i]);
+        }
     }
 
-    this.players = new_players;
+    this.players = new_population;
 };
 
 var Game = function(playerA, playerB) {
@@ -232,7 +256,7 @@ Game.prototype.turn = function() {
 
 Game.prototype.simulate = function() {
     for (var i = 0; i < 9; i++) {
-        if (this.boadStatus() == -1) break;
+        if (this.boardStatus() == -1) break;
 
         var pa;
         var turn = this.turn();
