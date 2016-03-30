@@ -23,6 +23,14 @@ function shuffle(array) {
     return array;
 }
 
+/*
+  A player is a collection of responses to certain game situations.
+  The associative array play is a collection of responses in way that for an board [] => i, with i being the best position to play with board condition.
+*/
+
+var Player = function() {
+    this.play = {};
+};
 
 var Population = function() {
     this.players = [];
@@ -33,30 +41,20 @@ Population.prototype.getRandomPlayer = function() {
     return this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))];
 };
 
-/*
- * Initialize MAX_PLAYERS initial players.
- */
 Population.prototype.initialize_population = function() {
     this.players = [];
 
-    var i;
-    var base_player = [];
-
-    for (i = 0; i < BOARD_SIDE_LEN * BOARD_SIDE_LEN; i++) {
-        base_player.push(i);
+    for (var i = 0; i < MAX_PLAYERS; i++) {
+        this.players.push(new Player());
     }
 
-    for (i = 0; i < MAX_PLAYERS; i++) {
-        var curr = shuffle(base_player.slice());
-        this.players.push(curr);
-    }
+    this.getFitness();
 };
 
 
 /*
  * Return array where [i, fitness] is the fitness of player i. Array is sorted by fitness
  */
-
 Population.prototype.getFitness = function() {
     var fitness = [];
 
@@ -118,9 +116,6 @@ Population.prototype.evolve = function() {
 
     this.players = new_players;
 };
-
-
-
 
 var Game = function(playerA, playerB) {
     this.playerA = playerA;
@@ -199,34 +194,18 @@ Game.prototype.turn = function() {
  */
 
 Game.prototype.simulate = function() {
-    var board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (var i = 0; i < 9; i++) {
+        var pa = this.playerA.getPlay[this.board];
 
-    var pos_A = 0;
-    var pos_B = 0;
-
-    var i;
-
-    for (i = 0; i < 9; i++) {
-        while (pos_A < BOARD_SIDE_LEN * BOARD_SIDE_LEN) {
-            var pa = this.convert(this.playerA[pos_A++]);
-
-            if (board[pa[0]][pa[1]] === 0) {
-                board[pa[0]][pa[1]] = 1;
-                break;
-            }
-        }
+        this.play(pa);
+        
         if (this.hasWinner(board)) {
             return 2;
         }
+        
+        var pb = this.playerB.getPlay[this.board];
 
-        while (pos_B < BOARD_SIDE_LEN * BOARD_SIDE_LEN) {
-            var pb = this.convert(this.playerB[pos_B++]);
-
-            if (board[pb[0]][pb[1]] === 0) {
-                board[pb[0]][pb[1]] = 2;
-                break;
-            }
-        }
+        this.play(pb);
 
         if (this.hasWinner(board)) {
             return 0;
@@ -254,8 +233,6 @@ Game.prototype.play = function(position) {
     var board_pos = this.convert(position);
 
     this.board[board_pos[0]][board_pos[1]] = this.turn();
-
-
 
     return true;
 };
