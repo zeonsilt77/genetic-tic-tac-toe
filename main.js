@@ -6,7 +6,7 @@
 
 var MAX_PLAYERS = 50;
 var BOARD_SIDE_LEN = 3;
-var MAX_OFFSPRING_PARENTS = 8;
+var MAX_OFFSPRING_PARENTS = 5;
 
 var PLAYER_COLOR = ['#c1c1c1', '#fbb917', '#43c6db'];
 
@@ -32,39 +32,40 @@ function rand(limit) {
 }
 
 /*
-  A player is a collection of responses to certain game situations.
-  The associative array play is a collection of responses in way that for an board [] => i, with i being the best position to play with board condition.
-*/
+ A player is a collection of responses to certain game situations.
+ The associative array play is a collection of responses in way that for an board [] => i, with i being the best position to play with board condiion.
+ */
 
 var Player = function() {
     this.play = {};
 };
 
-Player.prototype.getPlay = function(board, me) {
+Player.prototype.getPlay = function(board) {
     if (!this.play[board]) {
         var i, j;
         var available = [];
         
         for (i = 0; i < BOARD_SIDE_LEN; i++) {
             for (j = 0; j < BOARD_SIDE_LEN; j++) {
-                if (board[i][j] === 0) {
+                if (board.get(i, j) === 0) {
                     available.push(i * BOARD_SIDE_LEN + j);
                 }
             }
         }
         this.play[board] = available[Math.floor(Math.random() * available.length)];
     }
-
+    
     return this.play[board];
 };
 
+///////////////////////////////////////////////////////
+//Population prototype
 
 var Population = function() {
     this.players = [];
     
     for (var i = 0; i < MAX_PLAYERS; i++) {
         this.players.push(new Player());
-        //console.log(this.players[i]);
     }
 
     this.getFitness();
@@ -75,10 +76,16 @@ Population.prototype.getRandomPlayer = function() {
 };
 
 Population.prototype.crossover = function(playerA, playerB) {
+    var curr;
     var new_player = new Player();
     
-    for (var curr in playerA.plays) {
-        
+    for (curr in playerA.plays) {
+        new_player.plays[curr] = playerA.plays[curr];
+    }
+    for (curr in playerB.plays) {
+        if (!new_player.plays[curr] || rand(10) % 3 === 0) {
+            new_player.plays[curr] = playerB.plays[curr];
+        }
     }
 
     return player;
@@ -88,10 +95,11 @@ Population.prototype.mutate = function(player) {
     var new_player = new Player();
 
     for (var curr in player.plays) {
-        new_player.plays[curr] = player.plays[curr];
-
         if (rand(20) % 7 === 0) {
-            new_player.plays[curr] = 
+            var new_play = new_player.getPlay(new_player.plays[curr]);
+            new_player.plays[curr] = new_player;
+        } else {
+            new_player.plays[curr] = player.plays[curr];
         }
     }
     
@@ -136,6 +144,9 @@ Population.prototype.getFitness = function() {
 Population.prototype.evolve = function() {
     var fitness = this.getFitness();
 
+    console.log(fitness[0][0] + " " + fitness[0][1]);
+    console.log(fitness[1][0] + " " + fitness[1][1]);
+    
     var new_population = [];
 
     var i, j, k, l;
@@ -151,6 +162,10 @@ Population.prototype.evolve = function() {
         }
     }
 
+    for (i = 0; i < MAX_PLAYERS && new_population.length < MAX_PLAYERS; i++) {
+        new_population.push(this.players[i]);
+    }
+    
     for (i = 0; i < MAX_PLAYERS; i++) {
         if (Math.floor(Math.random() * 20) % 3 === 0) {
             new_population[i] = this.mutate(new_population[i]);
@@ -160,18 +175,63 @@ Population.prototype.evolve = function() {
     this.players = new_population;
 };
 
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+//Board prototype
+
+var Board = function() {
+    this.board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+};
+
+Board.prototype.get = function(i, j) {
+    return this.board[i][j];
+};
+
+Board.prototype.set = function(i, j, value) {
+    this.board[i][j] = value;
+};
+
+Board.prototype.getTurn = function() {
+    var used = 0;
+    var i, j;
+
+    for (i = 0; i < BOARD_SIDE_LEN; i++) {
+        for (j = 0; j < BOARD_SIDE_LEN; j++) {
+            if (this.board.get(i, j) !== 0) {
+                used += 1;
+            }
+        }
+    }
+
+    if (used % 2 === 0) {
+        return 1;
+    } else {
+        return 2;
+    }
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+//Game prototype
+
 var Game = function(playerA, playerB) {
     this.playerA = playerA;
     this.playerB = playerB;
-    this.board   = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    this.board   = new Board();
+};
+
+Game.prototype.getBoard = function() {
+    return this.board;
 };
 
 /*
-  =1 => Game is draw
-  0  => Still available to play
-  1  => Player 1 win
-  2  => Player 2 win
-  
+ =1 => Game is draw
+ 0  => Still available to play
+ 1  => Player 1 win
+ 2  => Player 2 win
+ 
  */
 Game.prototype.boardStatus = function() {
     var winner = 0;
@@ -184,8 +244,8 @@ Game.prototype.boardStatus = function() {
 
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 0; j < BOARD_SIDE_LEN; j++) {
-            ver_cnt[j][this.board[i][j]] += 1;
-            hor_cnt[i][this.board[i][j]] += 1;
+            ver_cnt[j][this.board.get(i, j)] += 1;
+            hor_cnt[i][this.board.get(i, j)] += 1;
         }
     }
     
@@ -209,11 +269,11 @@ Game.prototype.boardStatus = function() {
         hasDifferent += isH;
     }
 
-    if (this.board[1][1] !== 0 &&
-        ((this.board[1][1] == this.board[0][0] && this.board[1][1] == this.board[2][2]) ||
-         (this.board[1][1] == this.board[0][2] && this.board[1][1] == this.board[2][0]))) {
+    if (this.board.get(1, 1) === 0 &&
+        ((this.board.get(1, 1) == this.board.get(0, 0) && this.board.get(1, 1) == this.board.get(2, 2)) ||
+         (this.board.get(1, 1) == this.board.get(0, 2) && this.board.get(1, 1) == this.board.get(2, 0)))) {
 
-        winner = this.board[1][1];
+        winner = this.board.get(1, 1);
     }
 
     //If there's no winner and all rows and cols already has more than one player sign, the game is over
@@ -237,7 +297,7 @@ Game.prototype.turn = function() {
 
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 0; j < BOARD_SIDE_LEN; j++) {
-            if (this.board[i][j] !== 0) {
+            if (this.board.get(i, j) !== 0) {
                 used += 1;
             }
         }
@@ -267,9 +327,9 @@ Game.prototype.simulate = function() {
         var turn = this.turn();
 
         if (turn == 1) {
-            pa = this.playerA.getPlay(this.board, turn);
+            pa = this.playerA.getPlay(this.board);
         } else {
-            pa = this.playerB.getPlay(this.board, turn);
+            pa = this.playerB.getPlay(this.board);
         }
         
         this.play(pa);
@@ -291,7 +351,7 @@ Game.prototype.simulate = function() {
 Game.prototype.available = function(position) {
     var board_pos = this.convert(position);
 
-    if (position < 0 || position > 8 || this.board[board_pos[0]][board_pos[1]] !== 0) {
+    if (position < 0 || position > 8 || this.board.get(board_pos[0], board_pos[1]) !== 0) {
         return false;
     }
 
@@ -305,13 +365,12 @@ Game.prototype.play = function(position) {
 
     var board_pos = this.convert(position);
 
-    this.board[board_pos[0]][board_pos[1]] = this.turn();
+    this.board.set(board_pos[0], board_pos[1], this.turn());
 
     return true;
 };
 
-
-///////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
 
 var game = new Game();
 var population = new Population();
@@ -339,39 +398,35 @@ function playEvent() {
     var button = document.getElementById(button_num.toString());
     var label  = document.getElementById("label-" + button_num.toString());
 
+    var current = game.turn();
     
-        var current = game.turn();
+    label.style.backgroundColor = PLAYER_COLOR[current];
+    game.play(button_num);
+
+    console.log('Play ' + button_num);
+
+    if (game.boardStatus > 0) {
+        alert('Player ' + current + ' Won');
+        document.getElementById('start').click();
+    } else {
+        current = game.turn();
+        var play_pos = player.getPlay(game.getBoard());
+
+        console.log(game.getBoard().board);
+        console.log(play_pos);
+        
+        label = document.getElementById("label-" + play_pos);
+
+        game.play(play_pos);
         
         label.style.backgroundColor = PLAYER_COLOR[current];
-        game.play(button_num);
 
-        console.log('Play ' + button_num);
-
-        if (game.hasWinner() !== 0) {
+        if (game.boardStatus() > 0) {
             alert('Player ' + current + ' Won');
-            document.getElementById('start').click();
-        }
-
-        while (player.length > 0 && !game.available(player[0])) {
-            player.shift();
-        }
-
-        if (player.length > 0) {
-            current = game.turn();
-
-            label = document.getElementById("label-" + player[0].toString());
-            
-            game.play(player[0]);
-
-            label.style.backgroundColor = PLAYER_COLOR[current];
-            player.shift();
-
-            if (game.hasWinner() !== 0) {
-                alert('Player ' + current + ' Won');
-                clearGame();
-            }
+            clearGame();
         }
     }
+}
 
 
 function loadButtons() {
@@ -386,15 +441,15 @@ function loadButtons() {
         clearGame();
         
         if (now == 1) {
-            var label  = document.getElementById("label-" + player[0].toString());
+            var play_pos = player.getPlay(game.getBoard());
+            var label  = document.getElementById("label-" + play_pos);
             label.style.backgroundColor = PLAYER_COLOR[1];
-            game.play(player[0]);
-            player.shift();
+            game.play(play_pos);
         }
     };
 }
 
-for (var i = 0; i < 10; i++) {
+for (var i = 0; i < 3; i++) {
     population.evolve();
     console.log(i);
 }
