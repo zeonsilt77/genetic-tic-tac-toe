@@ -24,6 +24,14 @@ function shuffle(array) {
 }
 
 /*
+ Random integer generator
+ */
+
+function rand(limit) {
+    return Math.floor(Math.random() * limit);
+}
+
+/*
   A player is a collection of responses to certain game situations.
   The associative array play is a collection of responses in way that for an board [] => i, with i being the best position to play with board condition.
 */
@@ -33,23 +41,8 @@ var Player = function() {
 };
 
 Player.prototype.getPlay = function(board, me) {
-    var copy_board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
-
-    var i, j;
-    
-    for (i = 0; i < BOARD_SIDE_LEN; i++) {
-        for (j = 0; j < BOARD_SIDE_LEN; j++) {
-            if (board[i][j] === 0) {
-                copy_board[i][j] = 0;
-            } else if (board[i][j] == me) {
-                copy_board[i][j] = 1;
-            } else {
-                copy_board[i][j] = 2;
-            }
-        }
-    }
-
-    if (!this.play[copy_board]) {
+    if (!this.play[board]) {
+        var i, j;
         var available = [];
         
         for (i = 0; i < BOARD_SIDE_LEN; i++) {
@@ -59,23 +52,19 @@ Player.prototype.getPlay = function(board, me) {
                 }
             }
         }
-        this.play[copy_board] = available[Math.floor(Math.random() * available.length)];
+        this.play[board] = available[Math.floor(Math.random() * available.length)];
     }
 
-    return this.play[copy_board];
+    return this.play[board];
 };
 
 
 var Population = function() {
     this.players = [];
-    this.initialize_population();
-};
-
-Population.prototype.initialize_population = function() {
-    this.players = [];
-
+    
     for (var i = 0; i < MAX_PLAYERS; i++) {
         this.players.push(new Player());
+        //console.log(this.players[i]);
     }
 
     this.getFitness();
@@ -96,7 +85,17 @@ Population.prototype.crossover = function(playerA, playerB) {
 };
 
 Population.prototype.mutate = function(player) {
+    var new_player = new Player();
 
+    for (var curr in player.plays) {
+        new_player.plays[curr] = player.plays[curr];
+
+        if (rand(20) % 7 === 0) {
+            new_player.plays[curr] = 
+        }
+    }
+    
+    return new_player;
 };
 
 
@@ -108,6 +107,12 @@ Population.prototype.getFitness = function() {
 
     var i, j;
 
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        if (!this.players[i]) {
+            //console.log(i);
+        }
+    }
+    
     for (i = 0; i < MAX_PLAYERS; i++) {
         var curr = 0;
         for (j = 0; j < MAX_PLAYERS; j++) {
@@ -391,6 +396,7 @@ function loadButtons() {
 
 for (var i = 0; i < 10; i++) {
     population.evolve();
+    console.log(i);
 }
 
 loadButtons();
