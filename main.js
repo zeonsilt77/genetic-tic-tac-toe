@@ -5,6 +5,8 @@
  */
 
 var MAX_PLAYERS = 50;
+var MAX_FITNESS_PLAYERS = 500;
+
 var BOARD_SIDE_LEN = 3;
 var MAX_OFFSPRING_PARENTS = 5;
 
@@ -37,11 +39,21 @@ function rand(limit) {
  */
 
 var Player = function() {
-    this.play = {};
+    this.play = [];
+};
+
+Player.prototype.getPlayLength = function() {
+    var size = 0, key;
+    
+    for (key in this.play) {
+        if (this.play.hasOwnProperty(key)) size++;
+    }
+    
+    return size;
 };
 
 Player.prototype.getPlay = function(board) {
-    if (!this.play[board]) {
+    if (!this.play[board.getBoard()]) {
         var i, j;
         var available = [];
         
@@ -52,10 +64,11 @@ Player.prototype.getPlay = function(board) {
                 }
             }
         }
-        this.play[board] = available[Math.floor(Math.random() * available.length)];
-    }
-    
-    return this.play[board];
+        
+        var value = available[rand(available.length - 1)];        
+        this.play[board.getBoard()] = value;
+    } 
+    return this.play[board.getBoard()];
 };
 
 ///////////////////////////////////////////////////////
@@ -72,7 +85,8 @@ var Population = function() {
 };
 
 Population.prototype.getRandomPlayer = function() {
-    return this.players[Math.floor(Math.random() * (MAX_PLAYERS - 1))];
+    return this.players[0];
+    //return this.players[rand(MAX_PLAYERS - 1)];
 };
 
 Population.prototype.crossover = function(playerA, playerB) {
@@ -88,7 +102,7 @@ Population.prototype.crossover = function(playerA, playerB) {
         }
     }
 
-    return player;
+    return new_player;
 };
 
 Population.prototype.mutate = function(player) {
@@ -112,20 +126,20 @@ Population.prototype.mutate = function(player) {
  */
 Population.prototype.getFitness = function() {
     var fitness = [];
-
+    var training_players = [];
+    
     var i, j;
 
-    for (i = 0; i < MAX_PLAYERS; i++) {
-        if (!this.players[i]) {
-            //console.log(i);
-        }
+    for (i = 0; i < MAX_FITNESS_PLAYERS; i++) {
+        training_players.push(new Player());
     }
-    
+
     for (i = 0; i < MAX_PLAYERS; i++) {
         var curr = 0;
-        for (j = 0; j < MAX_PLAYERS; j++) {
-            curr += new Game(this.players[i], this.players[j]).simulate(); // Player i plays first
-            curr += new Game(this.players[j], this.players[i]).simulate(); // Player j plays first
+        
+        for (j = 0; j < MAX_FITNESS_PLAYERS; j++) {
+            curr += new Game(this.players[i], training_players[j]).simulate();
+            curr += new Game(training_players[j], this.players[i]).simulate(); 
         }
 
         fitness.push([i, curr]);
@@ -144,8 +158,7 @@ Population.prototype.getFitness = function() {
 Population.prototype.evolve = function() {
     var fitness = this.getFitness();
 
-    console.log(fitness[0][0] + " " + fitness[0][1]);
-    console.log(fitness[1][0] + " " + fitness[1][1]);
+    console.log(fitness[0][1] + " " + fitness[1][1]);
     
     var new_population = [];
 
@@ -155,7 +168,7 @@ Population.prototype.evolve = function() {
     for (i = 0; i < MAX_OFFSPRING_PARENTS; i++) {
         for (j = 0; j < MAX_OFFSPRING_PARENTS; j++) {
             var new_player = this.crossover(this.players[i], this.players[j]);
-
+            
             if (new_population.length < MAX_PLAYERS) {
                 new_population.push(new_player);
             }
@@ -166,8 +179,8 @@ Population.prototype.evolve = function() {
         new_population.push(this.players[i]);
     }
     
-    for (i = 0; i < MAX_PLAYERS; i++) {
-        if (Math.floor(Math.random() * 20) % 3 === 0) {
+    for (i = 20; i < MAX_PLAYERS; i++) {
+        if (rand(20) % 13 === 0) {
             new_population[i] = this.mutate(new_population[i]);
         }
     }
@@ -192,13 +205,18 @@ Board.prototype.set = function(i, j, value) {
     this.board[i][j] = value;
 };
 
+Board.prototype.getBoard = function() {
+    return this.board;
+};
+
+
 Board.prototype.getTurn = function() {
     var used = 0;
     var i, j;
 
     for (i = 0; i < BOARD_SIDE_LEN; i++) {
         for (j = 0; j < BOARD_SIDE_LEN; j++) {
-            if (this.board.get(i, j) !== 0) {
+            if (this.get(i, j) !== 0) {
                 used += 1;
             }
         }
@@ -264,12 +282,15 @@ Game.prototype.boardStatus = function() {
                 winner = j;
             }
         }
-        
-        hasDifferent += isV;
-        hasDifferent += isH;
+        if (isV > 1) {
+            hasDifferent += 1;
+        }
+        if (isH > 1) {
+            hasDifferent += 1;
+        }
     }
 
-    if (this.board.get(1, 1) === 0 &&
+    if (this.board.get(1, 1) !== 0 &&
         ((this.board.get(1, 1) == this.board.get(0, 0) && this.board.get(1, 1) == this.board.get(2, 2)) ||
          (this.board.get(1, 1) == this.board.get(0, 2) && this.board.get(1, 1) == this.board.get(2, 0)))) {
 
@@ -292,22 +313,7 @@ Game.prototype.convert = function(x) {
  Returns which player have to play
  */
 Game.prototype.turn = function() {
-    var used = 0;
-    var i, j;
-
-    for (i = 0; i < BOARD_SIDE_LEN; i++) {
-        for (j = 0; j < BOARD_SIDE_LEN; j++) {
-            if (this.board.get(i, j) !== 0) {
-                used += 1;
-            }
-        }
-    }
-
-    if (used % 2 === 0) {
-        return 1;
-    } else {
-        return 2;
-    }
+    return this.board.getTurn();
 };
 
 /*
@@ -331,8 +337,8 @@ Game.prototype.simulate = function() {
         } else {
             pa = this.playerB.getPlay(this.board);
         }
-        
-        this.play(pa);
+
+        var outcome = this.play(pa);
 
         var status = this.boardStatus();
         
@@ -403,27 +409,34 @@ function playEvent() {
     label.style.backgroundColor = PLAYER_COLOR[current];
     game.play(button_num);
 
+    var boardStatus = game.boardStatus();
+
     console.log('Play ' + button_num);
 
-    if (game.boardStatus > 0) {
+    if (boardStatus > 0) {
         alert('Player ' + current + ' Won');
+        document.getElementById('start').click();
+    } else if (boardStatus < 0) {
+        alert('Game Draw');
         document.getElementById('start').click();
     } else {
         current = game.turn();
         var play_pos = player.getPlay(game.getBoard());
 
-        console.log(game.getBoard().board);
-        console.log(play_pos);
-        
         label = document.getElementById("label-" + play_pos);
 
         game.play(play_pos);
         
         label.style.backgroundColor = PLAYER_COLOR[current];
 
-        if (game.boardStatus() > 0) {
+        boardStatus = game.boardStatus();
+        
+        if (boardStatus > 0) {
             alert('Player ' + current + ' Won');
             clearGame();
+        } else if (boardStatus < 0) {
+            alert('Game Draw');
+            document.getElementById('start').click();
         }
     }
 }
@@ -436,7 +449,7 @@ function loadButtons() {
     }
 
     document.getElementById('start').onclick = function() {
-        var now = 1 + Math.floor((Math.random() * 10)) % 2;
+        var now = 1 + rand(10) % 2;
         
         clearGame();
         
@@ -449,9 +462,8 @@ function loadButtons() {
     };
 }
 
-for (var i = 0; i < 3; i++) {
+for (var i = 0; i < 5; i++) {
     population.evolve();
-    console.log(i);
 }
 
 loadButtons();
