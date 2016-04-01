@@ -4,11 +4,11 @@
  Beginning with 50 randomly generated players, it keeps improving newer players based on best players from previous generations.
  */
 
-var MAX_PLAYERS = 50;
-var MAX_FITNESS_PLAYERS = 500;
+var MAX_PLAYERS = 10;
+var MAX_FITNESS_PLAYERS = 15000;
 
 var BOARD_SIDE_LEN = 3;
-var MAX_OFFSPRING_PARENTS = 5;
+var MAX_OFFSPRING_PARENTS = 2;
 
 var PLAYER_COLOR = ['#c1c1c1', '#fbb917', '#43c6db'];
 
@@ -53,8 +53,27 @@ Player.prototype.getPlayLength = function() {
 };
 
 Player.prototype.getPlay = function(board) {
-    if (!this.play[board.getBoard()]) {
-        var i, j;
+    var i, j;
+    
+    var copy_board  = new Board();
+    var curr_player = board.getTurn();
+
+    for (i = 0; i < BOARD_SIDE_LEN; i++) {
+        for (j = 0; j < BOARD_SIDE_LEN; j++) {
+            if (board.get(i, j) !== 0) {
+                if (board.get(i, j) == curr_player) {
+                    copy_board.set(i, j, 1);
+                } else {
+                    copy_board.set(i, j, 1);
+                }
+            }
+        }
+    }
+
+    var key = copy_board.getBoard();
+    
+    if (!this.play[key]) {
+
         var available = [];
         
         for (i = 0; i < BOARD_SIDE_LEN; i++) {
@@ -65,10 +84,11 @@ Player.prototype.getPlay = function(board) {
             }
         }
         
-        var value = available[rand(available.length - 1)];        
-        this.play[board.getBoard()] = value;
+        var value = available[rand(available.length - 1)];
+        
+        this.play[key] = value;
     } 
-    return this.play[board.getBoard()];
+    return this.play[key];
 };
 
 ///////////////////////////////////////////////////////
@@ -85,8 +105,7 @@ var Population = function() {
 };
 
 Population.prototype.getRandomPlayer = function() {
-    return this.players[0];
-    //return this.players[rand(MAX_PLAYERS - 1)];
+    return this.players[rand(MAX_PLAYERS - 1)];
 };
 
 Population.prototype.crossover = function(playerA, playerB) {
@@ -96,6 +115,7 @@ Population.prototype.crossover = function(playerA, playerB) {
     for (curr in playerA.plays) {
         new_player.plays[curr] = playerA.plays[curr];
     }
+
     for (curr in playerB.plays) {
         if (!new_player.plays[curr] || rand(10) % 3 === 0) {
             new_player.plays[curr] = playerB.plays[curr];
@@ -400,8 +420,8 @@ function clearGame() {
 
 function playEvent() {
     var button_num = event.srcElement.id;
-    var button = document.getElementById(button_num.toString());
-    var label  = document.getElementById("label-" + button_num.toString());
+    var button     = document.getElementById(button_num.toString());
+    var label      = document.getElementById("label-" + button_num.toString());
 
     var current = game.turn();
     
@@ -461,7 +481,7 @@ function loadButtons() {
     };
 }
 
-for (var i = 0; i < 5; i++) {
+for (var i = 0; i < 50; i++) {
     population.evolve();
 }
 
