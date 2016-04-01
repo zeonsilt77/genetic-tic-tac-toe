@@ -109,7 +109,7 @@ Population.prototype.mutate = function(player) {
     var new_player = new Player();
 
     for (var curr in player.plays) {
-        if (rand(20) % 7 === 0) {
+        if (rand(20) % 3 === 0) {
             var new_play = new_player.getPlay(new_player.plays[curr]);
             new_player.plays[curr] = new_player;
         } else {
@@ -179,8 +179,8 @@ Population.prototype.evolve = function() {
         new_population.push(this.players[i]);
     }
     
-    for (i = 20; i < MAX_PLAYERS; i++) {
-        if (rand(20) % 13 === 0) {
+    for (i = 0; i < MAX_PLAYERS; i++) {
+        if (rand(20) % 7 === 0) {
             new_population[i] = this.mutate(new_population[i]);
         }
     }
@@ -320,9 +320,8 @@ Game.prototype.turn = function() {
  Simulate a game with playerA and playerB. playerA plays first
 
  Return:
- 2 . PlayerA win
+ 1 . PlayerA win
  0 . PlayerB win
- 1 . Draw
  */
 
 Game.prototype.simulate = function() {
@@ -344,14 +343,14 @@ Game.prototype.simulate = function() {
         
         if (status == turn) {
             if (turn == 1) {
-                return 2;
+                return 1;
             } else {
                 return 0;
             }
         }
     }
-
-    return 1;
+    
+    return 0;
 };
 
 Game.prototype.available = function(position) {
